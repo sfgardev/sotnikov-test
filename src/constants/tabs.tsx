@@ -1,9 +1,10 @@
+import Posts from "../components/Posts/Posts";
 import { Tab } from "../components/Tabs/types";
 
 export const tabs: Tab[] = [
   {
     label: "Posts",
-    content: <span>Posts</span>,
+    content: <Posts />,
   },
   {
     label: "Photos",
