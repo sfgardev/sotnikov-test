@@ -1,5 +1,12 @@
+import Tabs from "./components/Tabs";
+import { tabs } from "./constants/tabs";
+
 function App() {
-  return <></>;
+  return (
+    <>
+      <Tabs tabs={tabs} />
+    </>
+  );
 }
 
 export default App;
