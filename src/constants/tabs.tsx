@@ -1,4 +1,4 @@
-import { Tab } from "../components/Tabs";
+import { Tab } from "../components/Tabs/types";
 
 export const tabs: Tab[] = [
   {
