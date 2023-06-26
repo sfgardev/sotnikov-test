@@ -20,12 +20,14 @@ import { useEffect, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
 import BasicModal, { PostEditState } from "../modals/PostEditModal";
-import { PostModel, UserModel } from "./types";
+import { CommentModel, PostModel, UserModel } from "./types";
 
 export type PostWithAdditionalInfo = PostModel & {
+  comments: CommentModel[];
   username: string;
   isSelected: boolean;
   isFavorite: boolean;
+  isCommentsVisible: boolean;
 };
 
 export default function Posts() {
@@ -42,29 +44,48 @@ export default function Posts() {
     useFetch<PostModel[]>("posts");
   const { data: usersApi, isLoading: usersLoading } =
     useFetch<UserModel[]>("users");
+  const { data: commentsApi, isLoading: commentsLoading } =
+    useFetch<CommentModel[]>("comments");
 
   useEffect(() => {
-    if (!postsApi || !usersApi) return;
+    if (!postsApi || !usersApi || !commentsApi) return;
 
-    const userNamesByIdsMap = new Map<number, UserModel>();
+    const usersByIdsMap = new Map<number, UserModel>();
+    const commentsByPostIdsMap = new Map<number, CommentModel[]>();
+
     for (const user of usersApi) {
-      if (userNamesByIdsMap.has(user.id)) continue;
-      userNamesByIdsMap.set(user.id, user);
+      if (usersByIdsMap.has(user.id)) continue;
+      usersByIdsMap.set(user.id, user);
     }
 
-    const postsByUserIds = postsApi.map((post) => {
-      const user = userNamesByIdsMap.get(post.userId);
+    for (const comment of commentsApi) {
+      const commentsByPostId = commentsByPostIdsMap.get(comment.postId);
+      if (commentsByPostId) {
+        commentsByPostIdsMap.set(comment.postId, [
+          ...commentsByPostId,
+          comment,
+        ]);
+      } else {
+        commentsByPostIdsMap.set(comment.postId, [comment]);
+      }
+    }
+
+    const postsWithCommentsByUserIds = postsApi.map((post) => {
+      const user = usersByIdsMap.get(post.userId);
+      const comments = commentsByPostIdsMap.get(post.id) ?? [];
 
       return {
         ...post,
+        comments,
         username: user?.name || "",
         isSelected: false,
         isFavorite: false,
+        isCommentsVisible: false,
       };
     });
 
-    setPosts(postsByUserIds);
-  }, [postsApi, usersApi]);
+    setPosts(postsWithCommentsByUserIds);
+  }, [postsApi, usersApi, commentsApi]);
 
   const handleOpen = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -124,7 +145,22 @@ export default function Posts() {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   };
 
-  if (postsLoading || usersLoading) return <CircularProgress />;
+  const handleToggleComments = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    postId: number
+  ) => {
+    e.stopPropagation();
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? { ...post, isCommentsVisible: !post.isCommentsVisible }
+          : post
+      )
+    );
+  };
+
+  if (postsLoading || usersLoading || commentsLoading)
+    return <CircularProgress />;
 
   return (
     <>
@@ -167,15 +203,22 @@ export default function Posts() {
                       >
                         <Typography>by {post.username}</Typography>
                         <Box>
-                          <IconButton aria-label="comments">
-                            <CommentIcon />
+                          <IconButton
+                            aria-label="comments"
+                            onClick={(e) => handleToggleComments(e, post.id)}
+                          >
+                            <CommentIcon
+                              color={
+                                post.isCommentsVisible ? "primary" : "action"
+                              }
+                            />
                           </IconButton>
                           <IconButton
                             aria-label="favorites"
                             onClick={(e) => handleAddToFavorite(e, post.id)}
                           >
                             {post.isFavorite ? (
-                              <FavoriteIcon />
+                              <FavoriteIcon color="primary" />
                             ) : (
                               <FavoriteBorderIcon />
                             )}
@@ -190,13 +233,33 @@ export default function Posts() {
                             aria-label="delete"
                             onClick={(e) => handleDelete(e, post.id)}
                           >
-                            <DeleteForeverIcon />
+                            <DeleteForeverIcon color="error" />
                           </IconButton>
                         </Box>
                       </Stack>
                     </Box>
                   }
-                  secondary={post.body}
+                  secondary={
+                    <Stack>
+                      <Typography>{post.body}</Typography>
+                      {post.isCommentsVisible && (
+                        <List>
+                          {post.comments.map((comment) => (
+                            <ListItem key={comment.id}>
+                              <ListItemText
+                                primary={
+                                  <Typography fontWeight={600}>
+                                    {comment.name} - {comment.email}
+                                  </Typography>
+                                }
+                                secondary={comment.body}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      )}
+                    </Stack>
+                  }
                 />
               </ListItemButton>
             </ListItem>
