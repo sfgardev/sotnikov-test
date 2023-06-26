@@ -19,7 +19,8 @@ import {
 import { useEffect, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
-import BasicModal, { PostEditState } from "../modals/PostEditModal";
+import ConfirmationModal from "../modals/ConfirmationModal";
+import PostEditModal, { PostEditState } from "../modals/PostEditModal";
 import { CommentModel, PostModel, UserModel } from "./types";
 
 export type PostWithAdditionalInfo = PostModel & {
@@ -32,13 +33,15 @@ export type PostWithAdditionalInfo = PostModel & {
 
 export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
-  const [open, setOpen] = useState(false);
+  const [openPostEditModal, setOpenPostEditModal] = useState(false);
+  const [openConfirmationModal, setOpenConfirmationModal] = useState(false);
   const [postEditState, setPostEditState] = useState<PostEditState>({
     id: -1,
     username: "",
     title: "",
     body: "",
   });
+  const [postId, setPostId] = useState(-1);
 
   const { data: postsApi, isLoading: postsLoading } =
     useFetch<PostModel[]>("posts");
@@ -87,19 +90,30 @@ export default function Posts() {
     setPosts(postsWithCommentsByUserIds);
   }, [postsApi, usersApi, commentsApi]);
 
-  const handleOpen = (
+  const handleOpenPostEditModal = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     post: PostWithAdditionalInfo
   ) => {
     e.stopPropagation();
     const { id, username, title, body } = post;
     setPostEditState({ id, username, title, body });
-    setOpen(true);
+    setOpenPostEditModal(true);
   };
 
-  const handleClose = () => setOpen(false);
+  const handleCloseConfirmationModal = () => setOpenConfirmationModal(false);
 
-  const handleSelect = (postId: number) => {
+  const handleClosePostEditModal = () => setOpenPostEditModal(false);
+
+  const handleOpenDeleteConfirmationModal = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    postId: number
+  ) => {
+    e.stopPropagation();
+    setOpenConfirmationModal(true);
+    setPostId(postId);
+  };
+
+  const handleSelectPost = (postId: number) => {
     setPosts((prev) =>
       prev.map((post) =>
         post.id === postId
@@ -136,11 +150,7 @@ export default function Posts() {
     );
   };
 
-  const handleDelete = (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-    postId: number
-  ) => {
-    e.stopPropagation();
+  const handleDeletePost = (postId: number) => {
     deletePost(postId);
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   };
@@ -164,13 +174,32 @@ export default function Posts() {
 
   return (
     <>
-      <BasicModal
-        open={open}
+      <PostEditModal
+        open={openPostEditModal}
         postEditState={postEditState}
-        onClose={handleClose}
+        onClose={handleClosePostEditModal}
         onConfirm={handleConfirmEdit}
       />
+      <ConfirmationModal
+        open={openConfirmationModal}
+        onClose={handleCloseConfirmationModal}
+        onConfirm={() => {
+          setOpenConfirmationModal(false);
+          handleDeletePost(postId);
+        }}
+      />
       <List sx={{ width: "100%", bgcolor: "background.paper" }}>
+        <Box>
+          <IconButton aria-label="favorites">
+            <FavoriteBorderIcon />
+          </IconButton>
+          <IconButton
+            aria-label="delete"
+            // onClick={(e) => handleDelete(e, post.id)}
+          >
+            <DeleteForeverIcon color="error" />
+          </IconButton>
+        </Box>
         {posts.map((post) => {
           const labelId = `checkbox-list-label-${post.id}`;
 
@@ -178,7 +207,7 @@ export default function Posts() {
             <ListItem key={post.id} disablePadding>
               <ListItemButton
                 role={undefined}
-                onClick={() => handleSelect(post.id)}
+                onClick={() => handleSelectPost(post.id)}
                 dense
               >
                 <ListItemIcon>
@@ -214,6 +243,12 @@ export default function Posts() {
                             />
                           </IconButton>
                           <IconButton
+                            aria-label="edit"
+                            onClick={(e) => handleOpenPostEditModal(e, post)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
                             aria-label="favorites"
                             onClick={(e) => handleAddToFavorite(e, post.id)}
                           >
@@ -224,14 +259,10 @@ export default function Posts() {
                             )}
                           </IconButton>
                           <IconButton
-                            aria-label="edit"
-                            onClick={(e) => handleOpen(e, post)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
                             aria-label="delete"
-                            onClick={(e) => handleDelete(e, post.id)}
+                            onClick={(e) =>
+                              handleOpenDeleteConfirmationModal(e, post.id)
+                            }
                           >
                             <DeleteForeverIcon color="error" />
                           </IconButton>
