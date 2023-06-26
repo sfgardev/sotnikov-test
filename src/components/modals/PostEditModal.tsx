@@ -57,6 +57,10 @@ export default function BasicModal({
     onClose();
   };
 
+  const handleCancel = () => {
+    setEditPostForm(postEditState);
+  };
+
   return (
     <div>
       <Modal
@@ -89,9 +93,23 @@ export default function BasicModal({
               value={editPostForm.body}
               onChange={handleChange}
             />
-            <Button variant="contained" color="primary" onClick={handleConfirm}>
-              save
-            </Button>
+            <Box sx={{ textAlign: "right" }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleConfirm}
+              >
+                Save
+              </Button>
+              <Button
+                variant="contained"
+                color="inherit"
+                sx={{ ml: ".5rem" }}
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
+            </Box>
           </FormControl>
         </Box>
       </Modal>
