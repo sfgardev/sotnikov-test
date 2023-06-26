@@ -11,6 +11,7 @@ export function useFetch<T>(
 
   useEffect(() => {
     const controller = new AbortController();
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
@@ -22,10 +23,9 @@ export function useFetch<T>(
         if (!res.ok) throw new Error(errorMessage);
 
         const data = (await res.json()) as T;
-
         setData(data);
       } catch (err: any) {
-        console.log(err);
+        console.log(err.message);
         setError(err.message);
       } finally {
         setIsLoading(false);
