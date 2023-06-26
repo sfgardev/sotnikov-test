@@ -1,102 +1,208 @@
-import { useMemo, useState } from "react";
-import { useFetch } from "../../hooks/useFetch";
-import { PostModel, UserModel } from "./types";
+import CommentIcon from "@mui/icons-material/Comment";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import EditIcon from "@mui/icons-material/Edit";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Box,
   Checkbox,
-  Stack,
+  CircularProgress,
   IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Stack,
   Typography,
 } from "@mui/material";
-import CommentIcon from "@mui/icons-material/Comment";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import { useEffect, useState } from "react";
+import { deletePost } from "../../api/deletePost";
+import { useFetch } from "../../hooks/useFetch";
+import BasicModal, { PostEditState } from "../modals/PostEditModal";
+import { PostModel, UserModel } from "./types";
+
+export type PostWithAdditionalInfo = PostModel & {
+  username: string;
+  isSelected: boolean;
+  isFavorite: boolean;
+};
 
 export default function Posts() {
-  // const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
+  const [open, setOpen] = useState(false);
+  const [postEditState, setPostEditState] = useState<PostEditState>({
+    id: -1,
+    username: "",
+    title: "",
+    body: "",
+  });
 
-  const { data: posts, error, isLoading } = useFetch<PostModel[]>("posts");
-  const { data: users } = useFetch<UserModel[]>("users");
+  const { data: postsApi, isLoading: postsLoading } =
+    useFetch<PostModel[]>("posts");
+  const { data: usersApi, isLoading: usersLoading } =
+    useFetch<UserModel[]>("users");
 
-  const postsByUser = useMemo(() => {
-    if (!posts || !users) return [];
+  useEffect(() => {
+    if (!postsApi || !usersApi) return;
 
     const userNamesByIdsMap = new Map<number, UserModel>();
-    for (const user of users) {
+    for (const user of usersApi) {
       if (userNamesByIdsMap.has(user.id)) continue;
       userNamesByIdsMap.set(user.id, user);
     }
 
-    return posts.map((post) => {
+    const postsByUserIds = postsApi.map((post) => {
       const user = userNamesByIdsMap.get(post.userId);
 
-      return { ...post, username: user?.name || "" };
+      return {
+        ...post,
+        username: user?.name || "",
+        isSelected: false,
+        isFavorite: false,
+      };
     });
-  }, [posts, users]);
+
+    setPosts(postsByUserIds);
+  }, [postsApi, usersApi]);
+
+  const handleOpen = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    post: PostWithAdditionalInfo
+  ) => {
+    e.stopPropagation();
+    const { id, username, title, body } = post;
+    setPostEditState({ id, username, title, body });
+    setOpen(true);
+  };
+
+  const handleClose = () => setOpen(false);
+
+  const handleSelect = (postId: number) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              isSelected: !post.isSelected,
+            }
+          : post
+      )
+    );
+  };
+
+  const handleAddToFavorite = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    postId: number
+  ) => {
+    e.stopPropagation();
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              isFavorite: !post.isFavorite,
+            }
+          : post
+      )
+    );
+  };
+
+  const handleConfirmEdit = (editedPost: PostEditState) => {
+    const { id, ...etc } = editedPost;
+    setPosts((prev) =>
+      prev.map((post) => (post.id === id ? { ...post, ...etc } : post))
+    );
+  };
+
+  const handleDelete = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    postId: number
+  ) => {
+    e.stopPropagation();
+    deletePost(postId);
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+  };
+
+  if (postsLoading || usersLoading) return <CircularProgress />;
 
   return (
-    <List sx={{ width: "100%", bgcolor: "background.paper" }}>
-      {postsByUser.map((post) => {
-        const labelId = `checkbox-list-label-${post.id}`;
+    <>
+      <BasicModal
+        open={open}
+        postEditState={postEditState}
+        onClose={handleClose}
+        onConfirm={handleConfirmEdit}
+      />
+      <List sx={{ width: "100%", bgcolor: "background.paper" }}>
+        {posts.map((post) => {
+          const labelId = `checkbox-list-label-${post.id}`;
 
-        return (
-          <ListItem key={post.id} disablePadding>
-            <ListItemButton
-              role={undefined}
-              // onClick={handleToggle(value)}
-              dense
-            >
-              <ListItemIcon>
-                <Checkbox
-                  edge="start"
-                  // checked={checked.indexOf(value) !== -1}
-                  tabIndex={-1}
-                  disableRipple
-                  inputProps={{ "aria-labelledby": labelId }}
+          return (
+            <ListItem key={post.id} disablePadding>
+              <ListItemButton
+                role={undefined}
+                onClick={() => handleSelect(post.id)}
+                dense
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    edge="start"
+                    checked={post.isSelected}
+                    tabIndex={-1}
+                    disableRipple
+                    inputProps={{ "aria-labelledby": labelId }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  id={labelId}
+                  primary={
+                    <Box>
+                      <Typography fontWeight={700}>{post.title}</Typography>
+
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                      >
+                        <Typography>by {post.username}</Typography>
+                        <Box>
+                          <IconButton aria-label="comments">
+                            <CommentIcon />
+                          </IconButton>
+                          <IconButton
+                            aria-label="favorites"
+                            onClick={(e) => handleAddToFavorite(e, post.id)}
+                          >
+                            {post.isFavorite ? (
+                              <FavoriteIcon />
+                            ) : (
+                              <FavoriteBorderIcon />
+                            )}
+                          </IconButton>
+                          <IconButton
+                            aria-label="edit"
+                            onClick={(e) => handleOpen(e, post)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            aria-label="delete"
+                            onClick={(e) => handleDelete(e, post.id)}
+                          >
+                            <DeleteForeverIcon />
+                          </IconButton>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  }
+                  secondary={post.body}
                 />
-              </ListItemIcon>
-              <ListItemText
-                id={labelId}
-                primary={
-                  <Box>
-                    <Typography fontWeight={700}>{post.title}</Typography>
-
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                    >
-                      <Typography>by {post.username}</Typography>
-                      <Box>
-                        <IconButton aria-label="comments">
-                          <CommentIcon />
-                        </IconButton>
-
-                        <IconButton aria-label="favorites">
-                          <FavoriteBorderIcon />
-                        </IconButton>
-                        <IconButton aria-label="edit">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton aria-label="delete">
-                          <DeleteForeverIcon />
-                        </IconButton>
-                      </Box>
-                    </Stack>
-                  </Box>
-                }
-                secondary={post.body}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </>
   );
 }
