@@ -20,7 +20,7 @@ export function TabPanel(props: TabPanelProps) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3, height: "100%", display: 'flex', alignItems:'center', justifyContent:'center' }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3, height: "100%" }}>{children}</Box>}
     </Box>
   );
 }
