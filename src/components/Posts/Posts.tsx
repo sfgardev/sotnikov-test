@@ -16,13 +16,15 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import PostEditModal, { PostEditState } from "../modals/PostEditModal";
 import { CommentModel, PostModel, UserModel } from "./types";
 import SelectPagiantion from "../SelectPagination";
+import Filter from "../Filters";
+import Sorting, { SortBy, SortDirection } from "../Sorting";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -46,6 +48,14 @@ export default function Posts() {
     body: "",
   });
   const [postId, setPostId] = useState(-1);
+
+  const [search, setSearch] = useState("");
+  const [selectedUsersFilter, setSelectedUsersFilter] = useState<string[]>([]);
+  const [isFavorites, setIsFavorites] = useState(false);
+
+  const [sortBy, setSortBy] = useState<SortBy>("");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("");
+
   const selectedPostIdsRef = useRef(new Set<number>([]));
 
   const { data: postsApi, isLoading: postsLoading } = useFetch<PostModel[]>(
@@ -55,6 +65,8 @@ export default function Posts() {
     useFetch<UserModel[]>("users");
   const { data: commentsApi, isLoading: commentsLoading } =
     useFetch<CommentModel[]>("comments");
+
+  const userNames = (usersApi ?? []).map((user) => user.name);
 
   useEffect(() => {
     if (!postsApi || !usersApi || !commentsApi) return;
@@ -219,6 +231,79 @@ export default function Posts() {
     );
   };
 
+  const handleSearch = (searchValue: string) => {
+    setSearch(searchValue);
+  };
+
+  const handleFilterByUsers = (userNames: string[]) => {
+    setSelectedUsersFilter(userNames);
+  };
+
+  const handleToggleFilterByFavorites = () => {
+    setIsFavorites((prev) => !prev);
+  };
+
+  const handleChangeSortDirection = (value: SortDirection) => {
+    setSortDirection(value);
+  };
+
+  const handleChangeSortBy = (value: SortBy) => {
+    setSortBy(value);
+  };
+
+  const filteredPosts = useMemo(() => {
+    if (!search && selectedUsersFilter.length === 0 && !isFavorites) {
+      return posts;
+    }
+    let newPosts = [...posts];
+    if (search) {
+      newPosts = newPosts.filter((post) =>
+        post.title.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (selectedUsersFilter.length > 0) {
+      newPosts = newPosts.filter((post) =>
+        selectedUsersFilter.includes(post.username)
+      );
+    }
+    // debugger;
+    if (isFavorites) {
+      newPosts = newPosts.filter((post) => post.isFavorite);
+    }
+    return newPosts;
+  }, [search, selectedUsersFilter, posts, isFavorites]);
+
+  const sortedPosts = useMemo(() => {
+    if (sortDirection === "" || sortBy === "") {
+      return filteredPosts;
+    }
+
+    const newPosts = [...filteredPosts];
+
+    newPosts.sort((a, b) => {
+      const value1 = a[sortBy];
+      const value2 = b[sortBy];
+
+      if (typeof value1 === "string" && typeof value2 === "string") {
+        return sortDirection === "asc"
+          ? value1.localeCompare(value2)
+          : value2.localeCompare(value1);
+      }
+
+      if (typeof value1 === "number" && typeof value2 === "number") {
+        return sortDirection === "asc" ? value1 - value2 : value2 - value1;
+      }
+
+      if (typeof value1 === "boolean" && typeof value2 === "boolean") {
+        return sortDirection === "desc" ? +value1 - +value2 : +value2 - +value1;
+      }
+
+      return 0
+    });
+
+    return newPosts;
+  }, [filteredPosts, sortDirection, sortBy]);
+
   if (postsLoading || usersLoading || commentsLoading)
     return (
       <CircularProgress
@@ -231,12 +316,30 @@ export default function Posts() {
       />
     );
 
+  console.log("sortedPosts", sortedPosts);
+
   return (
     <>
       <SelectPagiantion
         itemsPerPage={postsNumberPerPage}
         onChangeItemsPerPage={handleChangePostsNumberPerPage}
       />
+      <Sorting
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onChangeSortBy={handleChangeSortBy}
+        onChangeSortDirection={handleChangeSortDirection}
+      />
+      <Filter
+        search={search}
+        userNames={userNames}
+        isFavorites={isFavorites}
+        selectedUsersFilter={selectedUsersFilter}
+        onSearch={handleSearch}
+        onFilter={handleFilterByUsers}
+        onToggleFilterByFavorites={handleToggleFilterByFavorites}
+      />
+
       <PostEditModal
         open={openPostEditModal}
         postEditState={postEditState}
@@ -283,7 +386,7 @@ export default function Posts() {
             </IconButton>
           </Box>
         )}
-        {posts.map((post) => {
+        {sortedPosts.map((post) => {
           const labelId = `checkbox-list-label-${post.id}`;
 
           return (
