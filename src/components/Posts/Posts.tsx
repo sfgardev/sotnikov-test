@@ -22,6 +22,7 @@ import { useFetch } from "../../hooks/useFetch";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import PostEditModal, { PostEditState } from "../modals/PostEditModal";
 import { CommentModel, PostModel, UserModel } from "./types";
+import SelectPagiantion from "../SelectPagination";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -33,6 +34,7 @@ export type PostWithAdditionalInfo = PostModel & {
 
 export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
+  const [postsNumberPerPage, setPostsNumberPerPage] = useState(10);
   const [openPostEditModal, setOpenPostEditModal] = useState(false);
   const [openConfirmationModal, setOpenConfirmationModal] = useState(false);
   const [postEditState, setPostEditState] = useState<PostEditState>({
@@ -43,8 +45,9 @@ export default function Posts() {
   });
   const [postId, setPostId] = useState(-1);
 
-  const { data: postsApi, isLoading: postsLoading } =
-    useFetch<PostModel[]>("posts");
+  const { data: postsApi, isLoading: postsLoading } = useFetch<PostModel[]>(
+    `posts?_limit=${postsNumberPerPage}`
+  );
   const { data: usersApi, isLoading: usersLoading } =
     useFetch<UserModel[]>("users");
   const { data: commentsApi, isLoading: commentsLoading } =
@@ -89,6 +92,10 @@ export default function Posts() {
 
     setPosts(postsWithCommentsByUserIds);
   }, [postsApi, usersApi, commentsApi]);
+
+  const handleChangePostsNumberPerPage = (numPerPage: number) => {
+    setPostsNumberPerPage(numPerPage);
+  };
 
   const handleOpenPostEditModal = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -170,10 +177,23 @@ export default function Posts() {
   };
 
   if (postsLoading || usersLoading || commentsLoading)
-    return <CircularProgress />;
+    return (
+      <CircularProgress
+        sx={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          translate: "-50% -50%",
+        }}
+      />
+    );
 
   return (
     <>
+      <SelectPagiantion
+        itemsPerPage={postsNumberPerPage}
+        onChangeItemsPerPage={handleChangePostsNumberPerPage}
+      />
       <PostEditModal
         open={openPostEditModal}
         postEditState={postEditState}
@@ -188,8 +208,9 @@ export default function Posts() {
           handleDeletePost(postId);
         }}
       />
+
       <List sx={{ width: "100%", bgcolor: "background.paper" }}>
-        <Box>
+        {/* <Box>
           <IconButton aria-label="favorites">
             <FavoriteBorderIcon />
           </IconButton>
@@ -199,7 +220,7 @@ export default function Posts() {
           >
             <DeleteForeverIcon color="error" />
           </IconButton>
-        </Box>
+        </Box> */}
         {posts.map((post) => {
           const labelId = `checkbox-list-label-${post.id}`;
 
