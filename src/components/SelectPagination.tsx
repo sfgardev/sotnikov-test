@@ -15,7 +15,7 @@ export default function SelectPagiantion({
   };
 
   return (
-    <Box sx={{ minWidth: 120, display: "flex", justifyContent: "flex-end" }}>
+    <Box sx={{ minWidth: 120, display: "flex", justifyContent: "flex-end", mb:'1rem' }}>
       <FormControl>
         <NativeSelect value={itemsPerPage} onChange={handleChange}>
           <option value={10}>10</option>
