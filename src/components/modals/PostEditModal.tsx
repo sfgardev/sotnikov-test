@@ -18,19 +18,19 @@ export type PostEditState = Pick<
   "id" | "username" | "title" | "body"
 >;
 
-type BasicModalProps = {
+type PostEditModalProps = {
   open: boolean;
   postEditState: PostEditState;
   onClose: () => void;
   onConfirm: (post: PostEditState) => void;
 };
 
-export default function BasicModal({
+export default function PostEditModal({
   open,
   postEditState,
   onClose,
   onConfirm,
-}: BasicModalProps) {
+}: PostEditModalProps) {
   const [editPostForm, setEditPostForm] = useState<PostEditState>({
     id: -1,
     body: "",
