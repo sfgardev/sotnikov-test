@@ -16,7 +16,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
 import ConfirmationModal from "../modals/ConfirmationModal";
@@ -36,7 +36,9 @@ export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
   const [postsNumberPerPage, setPostsNumberPerPage] = useState(10);
   const [openPostEditModal, setOpenPostEditModal] = useState(false);
-  const [openConfirmationModal, setOpenConfirmationModal] = useState(false);
+  const [openDeleteConfirmationModal, setOpenDeleteConfirmationModal] =
+    useState(false);
+  const [openAddToFavoritesModal, setOpenAddToFavoritesModal] = useState(false);
   const [postEditState, setPostEditState] = useState<PostEditState>({
     id: -1,
     username: "",
@@ -44,6 +46,7 @@ export default function Posts() {
     body: "",
   });
   const [postId, setPostId] = useState(-1);
+  const selectedPostIdsRef = useRef(new Set<number>([]));
 
   const { data: postsApi, isLoading: postsLoading } = useFetch<PostModel[]>(
     `posts?_limit=${postsNumberPerPage}`
@@ -107,7 +110,8 @@ export default function Posts() {
     setOpenPostEditModal(true);
   };
 
-  const handleCloseConfirmationModal = () => setOpenConfirmationModal(false);
+  const handleCloseConfirmationModal = () =>
+    setOpenDeleteConfirmationModal(false);
 
   const handleClosePostEditModal = () => setOpenPostEditModal(false);
 
@@ -116,20 +120,59 @@ export default function Posts() {
     postId: number
   ) => {
     e.stopPropagation();
-    setOpenConfirmationModal(true);
+    setOpenDeleteConfirmationModal(true);
     setPostId(postId);
   };
 
   const handleSelectPost = (postId: number) => {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
+    setPosts((prev) => {
+      return prev.map((post) => {
+        const newIsSelected = !post.isSelected;
+
+        if (post.id === postId) {
+          if (newIsSelected) {
+            selectedPostIdsRef.current.add(post.id);
+          } else {
+            selectedPostIdsRef.current.delete(post.id);
+          }
+        }
+
+        return post.id === postId
           ? {
               ...post,
               isSelected: !post.isSelected,
             }
-          : post
-      )
+          : post;
+      });
+    });
+  };
+
+  const handleAddToFavoriteSelected = () => {
+    setPosts((prev) => {
+      return prev.map((post) => {
+        const isSelected = selectedPostIdsRef.current.has(post.id);
+
+        if (isSelected) {
+          selectedPostIdsRef.current.delete(post.id);
+          return { ...post, isFavorite: true, isSelected: false };
+        }
+
+        return post;
+      });
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    setPosts((prev) =>
+      prev.filter((post) => {
+        const isSelected = selectedPostIdsRef.current.has(post.id);
+
+        if (isSelected) {
+          selectedPostIdsRef.current.delete(post.id);
+          return false;
+        }
+        return true;
+      })
     );
   };
 
@@ -201,26 +244,45 @@ export default function Posts() {
         onConfirm={handleConfirmEdit}
       />
       <ConfirmationModal
-        open={openConfirmationModal}
+        open={openDeleteConfirmationModal}
+        text={"Are you sure you want to delete?"}
         onClose={handleCloseConfirmationModal}
         onConfirm={() => {
-          setOpenConfirmationModal(false);
-          handleDeletePost(postId);
+          setOpenDeleteConfirmationModal(false);
+          selectedPostIdsRef.current.size > 0
+            ? handleDeleteSelected()
+            : handleDeletePost(postId);
+        }}
+      />
+      <ConfirmationModal
+        open={openAddToFavoritesModal}
+        text={"Are you sure you want to add to favorites?"}
+        onClose={() => setOpenAddToFavoritesModal(false)}
+        onConfirm={() => {
+          setOpenAddToFavoritesModal(false);
+          handleAddToFavoriteSelected();
         }}
       />
 
       <List sx={{ width: "100%", bgcolor: "background.paper" }}>
-        {/* <Box>
-          <IconButton aria-label="favorites">
-            <FavoriteBorderIcon />
-          </IconButton>
-          <IconButton
-            aria-label="delete"
-            // onClick={(e) => handleDelete(e, post.id)}
-          >
-            <DeleteForeverIcon color="error" />
-          </IconButton>
-        </Box> */}
+        {selectedPostIdsRef.current.size > 0 && (
+          <Box>
+            <IconButton
+              aria-label="favorites"
+              onClick={() => {
+                setOpenAddToFavoritesModal(true);
+              }}
+            >
+              <FavoriteBorderIcon />
+            </IconButton>
+            <IconButton
+              aria-label="delete"
+              onClick={() => setOpenDeleteConfirmationModal(true)}
+            >
+              <DeleteForeverIcon color="error" />
+            </IconButton>
+          </Box>
+        )}
         {posts.map((post) => {
           const labelId = `checkbox-list-label-${post.id}`;
 

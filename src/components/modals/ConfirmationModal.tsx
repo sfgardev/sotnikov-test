@@ -13,12 +13,14 @@ const style = {
 
 type ConfirmationModalProps = {
   open: boolean;
+  text: string;
   onClose: () => void;
   onConfirm: () => void;
 };
 
 export default function ConfirmationModal({
   open,
+  text,
   onClose,
   onConfirm,
 }: ConfirmationModalProps) {
@@ -36,7 +38,7 @@ export default function ConfirmationModal({
       >
         <Box sx={style}>
           <Typography id="modal-modal-title" variant="h6" component="h2">
-            Are you sure you want to delete?
+            {text}
           </Typography>
 
           <Box sx={{ textAlign: "right", mt: "1rem" }}>
