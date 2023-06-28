@@ -1,6 +1,6 @@
 import { Box, Button, FormControl, Modal, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
-import { PostWithAdditionalInfo } from "../Posts/Posts";
+import { PostEditModalState, PostEditState } from "../Posts/types";
 
 const style = {
   position: "absolute",
@@ -13,24 +13,21 @@ const style = {
   p: 4,
 };
 
-export type PostEditState = Pick<
-  PostWithAdditionalInfo,
-  "id" | "username" | "title" | "body"
->;
-
 type PostEditModalProps = {
   open: boolean;
-  postEditState: PostEditState;
   onClose: () => void;
   onConfirm: (post: PostEditState) => void;
 };
 
 export default function PostEditModal({
   open,
-  postEditState,
+  body,
+  id,
+  title,
+  username,
   onClose,
   onConfirm,
-}: PostEditModalProps) {
+}: PostEditModalProps & PostEditModalState) {
   const [editPostForm, setEditPostForm] = useState<PostEditState>({
     id: -1,
     body: "",
@@ -39,8 +36,8 @@ export default function PostEditModal({
   });
 
   useEffect(() => {
-    setEditPostForm(postEditState);
-  }, [postEditState]);
+    setEditPostForm({ body, id, title, username });
+  }, [body, id, title, username]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -58,7 +55,7 @@ export default function PostEditModal({
   };
 
   const handleCancel = () => {
-    setEditPostForm(postEditState);
+    setEditPostForm({ body, id, title, username });
   };
 
   return (

@@ -21,13 +21,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
-import Filter from "../Filters";
+import { usePagination } from "../../hooks/usePagination";
+import Filters from "../Filters";
 import SelectPagiantion from "../SelectPagination";
-import Sorting, { SortBy, SortDirection } from "../Sorting";
+import Sorting from "../Sorting";
 import AddNewPostModal from "../modals/AddNewPostModal";
 import ConfirmationModal from "../modals/ConfirmationModal";
-import PostEditModal, { PostEditState } from "../modals/PostEditModal";
-import { CommentModel, PostModel, UserModel } from "./types";
+import PostEditModal from "../modals/PostEditModal";
+import {
+  AddNewPostModalState,
+  AddToFavoritesConfirmationModalState,
+  CommentModel,
+  PostDeleteConfirmationModalState,
+  PostEditModalState,
+  PostEditState,
+  PostModel,
+  UserModel,
+} from "./types";
+import useSorting from "../../hooks/useSorting";
+import useFilters from "../../hooks/useFilters";
+import { useModalState } from "../../hooks/useModalState";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -39,33 +52,66 @@ export type PostWithAdditionalInfo = PostModel & {
 
 export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
-  const [postsNumberPerPage, setPostsNumberPerPage] = useLocalStorage(
-    "postsCountOnPage",
-    10
-  );
+
+  const [postEditModalState, closePostEditModal, updatePostEditModalState] =
+    useModalState<PostEditModalState>({
+      show: false,
+      body: "",
+      id: -1,
+      title: "",
+      username: "",
+    });
+
+  const [
+    postDeleteConfirmationModalState,
+    closePostDeleteConfirmationModal,
+    updatePostDeleteConfirmationModalState,
+  ] = useModalState<PostDeleteConfirmationModalState>({
+    show: false,
+    postId: -1,
+  });
+
+  const [
+    addToFavoritesModalState,
+    closeAddToFavoritesModal,
+    updateAddToFavoritesModalState,
+  ] = useModalState<AddToFavoritesConfirmationModalState>({
+    show: false,
+  });
+
+  const [
+    addNewPostModalState,
+    closeAddNewPostModal,
+    updateAddNewPostModalState,
+  ] = useModalState<AddNewPostModalState>({
+    show: false,
+    title: "",
+    body: "",
+    username: "",
+  });
+
   const [favoritePostsIds, setFavoritePostsIds] = useLocalStorage<number[]>(
     "favoritePostsIds",
     []
   );
-  const [openPostEditModal, setOpenPostEditModal] = useState(false);
-  const [openDeleteConfirmationModal, setOpenDeleteConfirmationModal] =
-    useState(false);
-  const [openAddToFavoritesModal, setOpenAddToFavoritesModal] = useState(false);
-  const [openAddNewPostModal, setOpenAddNewPostModal] = useState(false);
-  const [postEditState, setPostEditState] = useState<PostEditState>({
-    id: -1,
-    username: "",
-    title: "",
-    body: "",
-  });
-  const [postId, setPostId] = useState(-1);
-
-  const [search, setSearch] = useState("");
-  const [selectedUsersFilter, setSelectedUsersFilter] = useState<string[]>([]);
-  const [isFavorites, setIsFavorites] = useState(false);
-
-  const [sortBy, setSortBy] = useState<SortBy>("");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("");
+  const {
+    itemsNumberPerPage: postsNumberPerPage,
+    handleChangeItemsNumberPerPage,
+  } = usePagination("postsCountOnPage");
+  const {
+    sortBy,
+    sortDirection,
+    handleChangeSortBy,
+    handleChangeSortDirection,
+  } = useSorting();
+  const {
+    search,
+    isFavorites,
+    selectedUsersFilter,
+    handleFilterByUsers,
+    handleSearch,
+    handleToggleFilterByFavorites,
+  } = useFilters();
 
   const selectedPostIdsRef = useRef(new Set<number>([]));
 
@@ -121,40 +167,22 @@ export default function Posts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postsApi, usersApi, commentsApi]);
 
-  const handleChangePostsNumberPerPage = (numPerPage: number) => {
-    setPostsNumberPerPage(numPerPage);
-  };
-
   const handleOpenPostEditModal = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     post: PostWithAdditionalInfo
   ) => {
     e.stopPropagation();
     const { id, username, title, body } = post;
-    setPostEditState({ id, username, title, body });
-    setOpenPostEditModal(true);
+
+    updatePostEditModalState({ show: true, id, username, title, body });
   };
 
-  const handleCloseConfirmationModal = () =>
-    setOpenDeleteConfirmationModal(false);
-
-  const handleClosePostEditModal = () => setOpenPostEditModal(false);
-
-  const handleOpenDeleteConfirmationModal = (
+  const handlePostDeleteConfirmationModal = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     postId: number
   ) => {
     e.stopPropagation();
-    setOpenDeleteConfirmationModal(true);
-    setPostId(postId);
-  };
-
-  const handleOpenAddNewPostModal = () => {
-    setOpenAddNewPostModal(true);
-  };
-
-  const handleCloseAddNewPostModal = () => {
-    setOpenAddNewPostModal(false);
+    updatePostDeleteConfirmationModalState({ show: true, postId });
   };
 
   const handleAddNewPost = (title: string, body: string, username: string) => {
@@ -175,7 +203,7 @@ export default function Posts() {
     };
 
     setPosts((prev) => [newPost, ...prev]);
-    setOpenAddNewPostModal(false);
+    updateAddNewPostModalState({ show: false });
   };
 
   const handleSelectPost = (postId: number) => {
@@ -252,9 +280,11 @@ export default function Posts() {
 
   const handleConfirmEdit = (editedPost: PostEditState) => {
     const { id, ...etc } = editedPost;
+
     setPosts((prev) =>
       prev.map((post) => (post.id === id ? { ...post, ...etc } : post))
     );
+    updatePostEditModalState({ show: false });
   };
 
   const handleDeletePost = (postId: number) => {
@@ -274,26 +304,6 @@ export default function Posts() {
           : post
       )
     );
-  };
-
-  const handleSearch = (searchValue: string) => {
-    setSearch(searchValue);
-  };
-
-  const handleFilterByUsers = (userNames: string[]) => {
-    setSelectedUsersFilter(userNames);
-  };
-
-  const handleToggleFilterByFavorites = () => {
-    setIsFavorites((prev) => !prev);
-  };
-
-  const handleChangeSortDirection = (value: SortDirection) => {
-    setSortDirection(value);
-  };
-
-  const handleChangeSortBy = (value: SortBy) => {
-    setSortBy(value);
   };
 
   const filteredPosts = useMemo(() => {
@@ -364,12 +374,12 @@ export default function Posts() {
     <>
       <SelectPagiantion
         itemsPerPage={postsNumberPerPage}
-        onChangeItemsPerPage={handleChangePostsNumberPerPage}
+        onChangeItemsPerPage={handleChangeItemsNumberPerPage}
       />
       <Button
         variant="contained"
         sx={{ mb: 2 }}
-        onClick={handleOpenAddNewPostModal}
+        onClick={() => updateAddNewPostModalState({ show: true })}
       >
         Add post
       </Button>
@@ -379,7 +389,7 @@ export default function Posts() {
         onChangeSortBy={handleChangeSortBy}
         onChangeSortDirection={handleChangeSortDirection}
       />
-      <Filter
+      <Filters
         search={search}
         userNames={userNames}
         isFavorites={isFavorites}
@@ -389,35 +399,38 @@ export default function Posts() {
         onToggleFilterByFavorites={handleToggleFilterByFavorites}
       />
       <AddNewPostModal
-        open={openAddNewPostModal}
+        open={addNewPostModalState.show}
         userNames={userNames}
-        onClose={handleCloseAddNewPostModal}
+        onClose={closeAddNewPostModal}
         onAddNewPost={handleAddNewPost}
       />
       <PostEditModal
-        open={openPostEditModal}
-        postEditState={postEditState}
-        onClose={handleClosePostEditModal}
+        open={postEditModalState.show}
+        onClose={closePostEditModal}
         onConfirm={handleConfirmEdit}
+        {...postEditModalState}
       />
       <ConfirmationModal
-        open={openDeleteConfirmationModal}
+        open={postDeleteConfirmationModalState.show}
         text={"Are you sure you want to delete?"}
-        onClose={handleCloseConfirmationModal}
+        onClose={closePostDeleteConfirmationModal}
         onConfirm={() => {
-          setOpenDeleteConfirmationModal(false);
           selectedPostIdsRef.current.size > 0
             ? handleDeleteSelected()
-            : handleDeletePost(postId);
+            : handleDeletePost(postDeleteConfirmationModalState.postId);
+
+          updatePostDeleteConfirmationModalState({
+            show: false,
+          });
         }}
       />
       <ConfirmationModal
-        open={openAddToFavoritesModal}
+        open={addToFavoritesModalState.show}
         text={"Are you sure you want to add to favorites?"}
-        onClose={() => setOpenAddToFavoritesModal(false)}
+        onClose={closeAddToFavoritesModal}
         onConfirm={() => {
-          setOpenAddToFavoritesModal(false);
           handleAddToFavoriteSelected();
+          updateAddToFavoritesModalState({ show: false });
         }}
       />
 
@@ -427,14 +440,16 @@ export default function Posts() {
             <IconButton
               aria-label="favorites"
               onClick={() => {
-                setOpenAddToFavoritesModal(true);
+                updateAddToFavoritesModalState({ show: true });
               }}
             >
               <FavoriteBorderIcon />
             </IconButton>
             <IconButton
               aria-label="delete"
-              onClick={() => setOpenDeleteConfirmationModal(true)}
+              onClick={() =>
+                updatePostDeleteConfirmationModalState({ show: true })
+              }
             >
               <DeleteForeverIcon color="error" />
             </IconButton>
@@ -501,7 +516,7 @@ export default function Posts() {
                           <IconButton
                             aria-label="delete"
                             onClick={(e) =>
-                              handleOpenDeleteConfirmationModal(e, post.id)
+                              handlePostDeleteConfirmationModal(e, post.id)
                             }
                           >
                             <DeleteForeverIcon color="error" />

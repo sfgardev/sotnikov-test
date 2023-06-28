@@ -11,7 +11,7 @@ import {
   TextField,
 } from "@mui/material";
 
-type FilterProps = {
+type FiltersProps = {
   search: string;
   userNames: string[];
   isFavorites: boolean;
@@ -21,7 +21,7 @@ type FilterProps = {
   onToggleFilterByFavorites: () => void;
 };
 
-export default function Filter({
+export default function Filters({
   search,
   userNames,
   isFavorites,
@@ -29,7 +29,7 @@ export default function Filter({
   onFilter,
   onSearch,
   onToggleFilterByFavorites,
-}: FilterProps) {
+}: FiltersProps) {
   const handleChange = (e: SelectChangeEvent<typeof selectedUsersFilter>) => {
     const { value } = e.target;
 
