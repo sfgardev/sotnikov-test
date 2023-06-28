@@ -1,11 +1,15 @@
-import Tabs from "./components/Tabs";
-import { tabs } from "./constants/tabs";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
+import Album from "./pages/Album";
 
 function App() {
   return (
-    <>
-      <Tabs tabs={tabs} />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/album/:albumId" element={<Album />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
