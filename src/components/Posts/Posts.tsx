@@ -5,6 +5,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Box,
+  Button,
   Checkbox,
   CircularProgress,
   IconButton,
@@ -19,12 +20,13 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
+import Filter from "../Filters";
+import SelectPagiantion from "../SelectPagination";
+import Sorting, { SortBy, SortDirection } from "../Sorting";
+import AddNewPostModal from "../modals/AddNewPostModal";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import PostEditModal, { PostEditState } from "../modals/PostEditModal";
 import { CommentModel, PostModel, UserModel } from "./types";
-import SelectPagiantion from "../SelectPagination";
-import Filter from "../Filters";
-import Sorting, { SortBy, SortDirection } from "../Sorting";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -41,6 +43,7 @@ export default function Posts() {
   const [openDeleteConfirmationModal, setOpenDeleteConfirmationModal] =
     useState(false);
   const [openAddToFavoritesModal, setOpenAddToFavoritesModal] = useState(false);
+  const [openAddNewPostModal, setOpenAddNewPostModal] = useState(false);
   const [postEditState, setPostEditState] = useState<PostEditState>({
     id: -1,
     username: "",
@@ -134,6 +137,34 @@ export default function Posts() {
     e.stopPropagation();
     setOpenDeleteConfirmationModal(true);
     setPostId(postId);
+  };
+
+  const handleOpenAddNewPostModal = () => {
+    setOpenAddNewPostModal(true);
+  };
+
+  const handleCloseAddNewPostModal = () => {
+    setOpenAddNewPostModal(false);
+  };
+
+  const handleAddNewPost = (title: string, body: string, username: string) => {
+    const userId = usersApi?.find((user) => user.name === username)?.id ?? -1;
+
+    const newPost: PostWithAdditionalInfo = {
+      id: 1,
+      userId,
+      body,
+      title,
+      username,
+      comments: [],
+      isFavorite: false,
+      isCommentsVisible: false,
+      isSelected: false,
+    };
+    if (!title || !body || !username) return;
+
+    setPosts((prev) => [newPost, ...prev]);
+    setOpenAddNewPostModal(false);
   };
 
   const handleSelectPost = (postId: number) => {
@@ -266,7 +297,6 @@ export default function Posts() {
         selectedUsersFilter.includes(post.username)
       );
     }
-    // debugger;
     if (isFavorites) {
       newPosts = newPosts.filter((post) => post.isFavorite);
     }
@@ -298,7 +328,7 @@ export default function Posts() {
         return sortDirection === "desc" ? +value1 - +value2 : +value2 - +value1;
       }
 
-      return 0
+      return 0;
     });
 
     return newPosts;
@@ -316,14 +346,19 @@ export default function Posts() {
       />
     );
 
-  console.log("sortedPosts", sortedPosts);
-
   return (
     <>
       <SelectPagiantion
         itemsPerPage={postsNumberPerPage}
         onChangeItemsPerPage={handleChangePostsNumberPerPage}
       />
+      <Button
+        variant="contained"
+        sx={{ mb: 2 }}
+        onClick={handleOpenAddNewPostModal}
+      >
+        Add post
+      </Button>
       <Sorting
         sortBy={sortBy}
         sortDirection={sortDirection}
@@ -339,7 +374,12 @@ export default function Posts() {
         onFilter={handleFilterByUsers}
         onToggleFilterByFavorites={handleToggleFilterByFavorites}
       />
-
+      <AddNewPostModal
+        open={openAddNewPostModal}
+        userNames={userNames}
+        onClose={handleCloseAddNewPostModal}
+        onAddNewPost={handleAddNewPost}
+      />
       <PostEditModal
         open={openPostEditModal}
         postEditState={postEditState}
