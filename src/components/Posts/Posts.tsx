@@ -20,6 +20,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import Filter from "../Filters";
 import SelectPagiantion from "../SelectPagination";
 import Sorting, { SortBy, SortDirection } from "../Sorting";
@@ -38,7 +39,14 @@ export type PostWithAdditionalInfo = PostModel & {
 
 export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
-  const [postsNumberPerPage, setPostsNumberPerPage] = useState(10);
+  const [postsNumberPerPage, setPostsNumberPerPage] = useLocalStorage(
+    "postsCountOnPage",
+    10
+  );
+  const [favoritePostsIds, setFavoritePostsIds] = useLocalStorage<number[]>(
+    "favoritePostsIds",
+    []
+  );
   const [openPostEditModal, setOpenPostEditModal] = useState(false);
   const [openDeleteConfirmationModal, setOpenDeleteConfirmationModal] =
     useState(false);
@@ -76,6 +84,7 @@ export default function Posts() {
 
     const usersByIdsMap = new Map<number, UserModel>();
     const commentsByPostIdsMap = new Map<number, CommentModel[]>();
+    const favoritePostsIdsSet = new Set([...favoritePostsIds]);
 
     for (const user of usersApi) {
       if (usersByIdsMap.has(user.id)) continue;
@@ -103,12 +112,13 @@ export default function Posts() {
         comments,
         username: user?.name || "",
         isSelected: false,
-        isFavorite: false,
+        isFavorite: favoritePostsIdsSet.has(post.id),
         isCommentsVisible: false,
       };
     });
 
     setPosts(postsWithCommentsByUserIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postsApi, usersApi, commentsApi]);
 
   const handleChangePostsNumberPerPage = (numPerPage: number) => {
@@ -226,14 +236,17 @@ export default function Posts() {
   ) => {
     e.stopPropagation();
     setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              isFavorite: !post.isFavorite,
-            }
-          : post
-      )
+      prev.map((post) => {
+        if (post.id === postId) {
+          setFavoritePostsIds((prev) =>
+            post.isFavorite
+              ? prev.filter((favPostId) => favPostId !== postId)
+              : [...prev, postId]
+          );
+          return { ...post, isFavorite: !post.isFavorite };
+        }
+        return post;
+      })
     );
   };
 
