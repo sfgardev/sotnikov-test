@@ -1,4 +1,5 @@
-import Posts from "../components/Posts/Posts";
+import Photos from "../components/Photos";
+import Posts from "../components/Posts";
 import { Tab } from "../components/Tabs/types";
 
 export const tabs: Tab[] = [
@@ -8,7 +9,7 @@ export const tabs: Tab[] = [
   },
   {
     label: "Photos",
-    content: <span>Photos</span>,
+    content: <Photos />,
   },
   {
     label: "Todos",
