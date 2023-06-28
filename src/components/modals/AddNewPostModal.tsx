@@ -38,6 +38,8 @@ export default function AddNewPostModal({
   const [body, setBody] = useState("");
   const [selectedUserName, setSelectedUserName] = useState("");
 
+  const isValid = title && body && selectedUserName;
+
   const handleAddPost = () => {
     onAddNewPost(title, body, selectedUserName);
     setTitle("");
@@ -78,7 +80,6 @@ export default function AddNewPostModal({
                 value={selectedUserName}
                 label="User name"
                 onChange={(e) => setSelectedUserName(e.target.value)}
-                // onChange={(e) => onChangeSortBy(e.target.value as SortBy)}
               >
                 {userNames.map((user) => (
                   <MenuItem key={user} value={user}>
@@ -93,6 +94,7 @@ export default function AddNewPostModal({
                 variant="contained"
                 color="primary"
                 onClick={handleAddPost}
+                disabled={!isValid}
               >
                 Add
               </Button>

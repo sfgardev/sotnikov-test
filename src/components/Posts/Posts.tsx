@@ -148,10 +148,12 @@ export default function Posts() {
   };
 
   const handleAddNewPost = (title: string, body: string, username: string) => {
-    const userId = usersApi?.find((user) => user.name === username)?.id ?? -1;
+    if (!usersApi) return;
+
+    const userId = usersApi.find((user) => user.name === username)?.id ?? -1;
 
     const newPost: PostWithAdditionalInfo = {
-      id: 1,
+      id: Date.now(),
       userId,
       body,
       title,
@@ -161,7 +163,6 @@ export default function Posts() {
       isCommentsVisible: false,
       isSelected: false,
     };
-    if (!title || !body || !username) return;
 
     setPosts((prev) => [newPost, ...prev]);
     setOpenAddNewPostModal(false);
