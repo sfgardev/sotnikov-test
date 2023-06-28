@@ -1,3 +1,5 @@
+import { PostWithAdditionalInfo } from "./Posts";
+
 export type PostModel = {
   body: string;
   id: number;
@@ -41,4 +43,30 @@ export type CommentModel = {
   name: string;
   email: string;
   body: string;
+};
+
+export type PostEditState = Pick<
+  PostWithAdditionalInfo,
+  "id" | "username" | "title" | "body"
+>;
+
+export type PostEditModalState = Pick<
+  PostWithAdditionalInfo,
+  "id" | "username" | "title" | "body"
+> & { show: boolean };
+
+export type PostDeleteConfirmationModalState = {
+  show: boolean;
+  postId: number;
+};
+
+export type AddToFavoritesConfirmationModalState = {
+  show: boolean;
+};
+
+export type AddNewPostModalState = Pick<
+  PostWithAdditionalInfo,
+  "username" | "title" | "body"
+> & {
+  show: boolean;
 };
