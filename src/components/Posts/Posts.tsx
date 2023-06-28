@@ -6,13 +6,10 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   IconButton,
   List,
   ListItem,
-  ListItemButton,
-  ListItemIcon,
   ListItemText,
   Stack,
   Typography,
@@ -20,10 +17,15 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
+import useFilters from "../../hooks/useFilters";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useModalState } from "../../hooks/useModalState";
 import { usePagination } from "../../hooks/usePagination";
+import { useSet } from "../../hooks/useSet";
+import useSorting from "../../hooks/useSorting";
 import Filters from "../Filters";
-import SelectPagiantion from "../SelectPagination";
+import ListWithCheckbox from "../ListWithCheckbox";
+import SelectPagination from "../SelectPagination";
 import Sorting from "../Sorting";
 import AddNewPostModal from "../modals/AddNewPostModal";
 import ConfirmationModal from "../modals/ConfirmationModal";
@@ -38,10 +40,6 @@ import {
   PostModel,
   UserModel,
 } from "./types";
-import useSorting from "../../hooks/useSorting";
-import useFilters from "../../hooks/useFilters";
-import { useModalState } from "../../hooks/useModalState";
-import { useSet } from "../../hooks/useSet";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -56,8 +54,7 @@ export default function Posts() {
     []
   );
   const [selectedPostsIdsSet, selectedPostsIdsSetActions] = useSet<number>([]);
-  const [, favoritesPostIdsSetActions] =
-    useSet<number>(favoritePostsIds);
+  const [, favoritesPostIdsSetActions] = useSet<number>(favoritePostsIds);
   const [commentsPostVisibleIdsSet, commentsPostVisibleIdsSetActions] =
     useSet<number>([]);
 
@@ -159,9 +156,7 @@ export default function Posts() {
         ...post,
         comments,
         username: user?.name || "",
-        isSelected: false,
         isFavorite: favoritePostsIdsSet.has(post.id),
-        isCommentsVisible: false,
       };
     });
 
@@ -339,7 +334,7 @@ export default function Posts() {
 
   return (
     <>
-      <SelectPagiantion
+      <SelectPagination
         itemsPerPage={postsNumberPerPage}
         onChangeItemsPerPage={handleChangeItemsNumberPerPage}
       />
@@ -401,126 +396,87 @@ export default function Posts() {
         }}
       />
 
-      <List sx={{ width: "100%", bgcolor: "background.paper" }}>
-        {selectedPostsIdsSet.size > 0 && (
+      <ListWithCheckbox
+        items={sortedPosts}
+        selectedItemsSet={selectedPostsIdsSet}
+        onSelectItem={handleSelectPost}
+        onOpenAddToFavoriteConfirmationModal={() =>
+          updateAddToFavoritesModalState({ show: true })
+        }
+        onOpenDeleteConfirmationItemModal={() =>
+          updatePostDeleteConfirmationModalState({ show: true })
+        }
+        renderPrimary={(post) => (
           <Box>
-            <IconButton
-              aria-label="favorites"
-              onClick={() => {
-                updateAddToFavoritesModalState({ show: true });
-              }}
+            <Typography fontWeight={700}>{post.title}</Typography>
+
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
             >
-              <FavoriteBorderIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
-              onClick={() =>
-                updatePostDeleteConfirmationModalState({ show: true })
-              }
-            >
-              <DeleteForeverIcon color="error" />
-            </IconButton>
+              <Typography>by {post.username}</Typography>
+              <Box>
+                <IconButton
+                  aria-label="comments"
+                  onClick={(e) => handleToggleComments(e, post.id)}
+                >
+                  <CommentIcon
+                    color={
+                      commentsPostVisibleIdsSet.has(post.id)
+                        ? "primary"
+                        : "action"
+                    }
+                  />
+                </IconButton>
+                <IconButton
+                  aria-label="edit"
+                  onClick={(e) => handleOpenPostEditModal(e, post)}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  aria-label="favorites"
+                  onClick={(e) => handleAddToFavorite(e, post.id)}
+                >
+                  {favoritesPostIdsSetActions.has(post.id) ? (
+                    <FavoriteIcon color="primary" />
+                  ) : (
+                    <FavoriteBorderIcon />
+                  )}
+                </IconButton>
+                <IconButton
+                  aria-label="delete"
+                  onClick={(e) => handlePostDeleteConfirmationModal(e, post.id)}
+                >
+                  <DeleteForeverIcon color="error" />
+                </IconButton>
+              </Box>
+            </Stack>
           </Box>
         )}
-        {sortedPosts.map((post) => {
-          const labelId = `checkbox-list-label-${post.id}`;
-
-          return (
-            <ListItem key={post.id} disablePadding>
-              <ListItemButton
-                role={undefined}
-                onClick={() => handleSelectPost(post.id)}
-                dense
-              >
-                <ListItemIcon>
-                  <Checkbox
-                    edge="start"
-                    checked={selectedPostsIdsSetActions.has(post.id)}
-                    tabIndex={-1}
-                    disableRipple
-                    inputProps={{ "aria-labelledby": labelId }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  id={labelId}
-                  primary={
-                    <Box>
-                      <Typography fontWeight={700}>{post.title}</Typography>
-
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-                      >
-                        <Typography>by {post.username}</Typography>
-                        <Box>
-                          <IconButton
-                            aria-label="comments"
-                            onClick={(e) => handleToggleComments(e, post.id)}
-                          >
-                            <CommentIcon
-                              color={
-                                commentsPostVisibleIdsSet.has(post.id)
-                                  ? "primary"
-                                  : "action"
-                              }
-                            />
-                          </IconButton>
-                          <IconButton
-                            aria-label="edit"
-                            onClick={(e) => handleOpenPostEditModal(e, post)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            aria-label="favorites"
-                            onClick={(e) => handleAddToFavorite(e, post.id)}
-                          >
-                            {favoritesPostIdsSetActions.has(post.id) ? (
-                              <FavoriteIcon color="primary" />
-                            ) : (
-                              <FavoriteBorderIcon />
-                            )}
-                          </IconButton>
-                          <IconButton
-                            aria-label="delete"
-                            onClick={(e) =>
-                              handlePostDeleteConfirmationModal(e, post.id)
-                            }
-                          >
-                            <DeleteForeverIcon color="error" />
-                          </IconButton>
-                        </Box>
-                      </Stack>
-                    </Box>
-                  }
-                  secondary={
-                    <Stack>
-                      <Typography>{post.body}</Typography>
-                      {commentsPostVisibleIdsSet.has(post.id) && (
-                        <List>
-                          {post.comments.map((comment) => (
-                            <ListItem key={comment.id}>
-                              <ListItemText
-                                primary={
-                                  <Typography fontWeight={600}>
-                                    {comment.name} - {comment.email}
-                                  </Typography>
-                                }
-                                secondary={comment.body}
-                              />
-                            </ListItem>
-                          ))}
-                        </List>
-                      )}
-                    </Stack>
-                  }
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+        renderSecondary={(post) => (
+          <Stack>
+            <Typography>{post.body}</Typography>
+            {commentsPostVisibleIdsSet.has(post.id) && (
+              <List>
+                {post.comments.map((comment) => (
+                  <ListItem key={comment.id}>
+                    <ListItemText
+                      primary={
+                        <Typography fontWeight={600}>
+                          {comment.name} - {comment.email}
+                        </Typography>
+                      }
+                      secondary={comment.body}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Stack>
+        )}
+      />
     </>
   );
 }

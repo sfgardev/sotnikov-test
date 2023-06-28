@@ -6,6 +6,7 @@ export type LocalStorageKeys = {
   photosCountOnPage: number;
   tasksCountOnPage: number;
   favoritePostsIds: number[];
+  favoriteAlbumsIds: number[];
 };
 
 export function useLocalStorage<T>(
