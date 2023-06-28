@@ -4,6 +4,7 @@ import MuiTabs from "@mui/material/Tabs";
 import * as React from "react";
 import { Tab } from "./types";
 import { TabPanel } from "./TabPanel";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 function a11yProps(index: number) {
   return {
@@ -17,7 +18,7 @@ type TabsProps = {
 };
 
 export default function Tabs({ tabs }: TabsProps) {
-  const [value, setValue] = React.useState(0);
+  const [value, setValue] = useLocalStorage("activeTab", 0);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
