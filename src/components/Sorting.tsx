@@ -5,7 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 
 export type SortDirection = "asc" | "desc" | "";
-export type SortBy = "id" | "title" | "username" | "isFavorite" | "";
+export type SortBy = "id" | "title" | "username" | "";
 
 type SortingProps = {
   sortDirection: SortDirection;
