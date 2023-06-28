@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 
-type LocalStorageKeys = {
+export type LocalStorageKeys = {
   activeTab: number;
   postsCountOnPage: number;
+  photosCountOnPage: number;
+  tasksCountOnPage: number;
   favoritePostsIds: number[];
 };
 
