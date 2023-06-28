@@ -1,11 +1,7 @@
 import {
-  Button,
-  Checkbox,
   FormControl,
   FormControlLabel,
-  IconButton,
   InputLabel,
-  ListItemText,
   MenuItem,
   OutlinedInput,
   Select,
@@ -57,14 +53,9 @@ export default function Filter({
           value={selectedUsersFilter}
           onChange={handleChange}
           input={<OutlinedInput label="Name" />}
-          //   MenuProps={MenuProps}
         >
           {userNames.map((name) => (
-            <MenuItem
-              key={name}
-              value={name}
-              //   style={getStyles(name, personName, theme)}
-            >
+            <MenuItem key={name} value={name}>
               {name}
             </MenuItem>
           ))}
