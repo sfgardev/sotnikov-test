@@ -17,7 +17,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deletePost } from "../../api/deletePost";
 import { useFetch } from "../../hooks/useFetch";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
@@ -41,17 +41,25 @@ import {
 import useSorting from "../../hooks/useSorting";
 import useFilters from "../../hooks/useFilters";
 import { useModalState } from "../../hooks/useModalState";
+import { useSet } from "../../hooks/useSet";
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
   username: string;
-  isSelected: boolean;
-  isFavorite: boolean;
-  isCommentsVisible: boolean;
 };
 
 export default function Posts() {
   const [posts, setPosts] = useState<PostWithAdditionalInfo[]>([]);
+
+  const [favoritePostsIds, setFavoritePostsIds] = useLocalStorage<number[]>(
+    "favoritePostsIds",
+    []
+  );
+  const [selectedPostsIdsSet, selectedPostsIdsSetActions] = useSet<number>([]);
+  const [, favoritesPostIdsSetActions] =
+    useSet<number>(favoritePostsIds);
+  const [commentsPostVisibleIdsSet, commentsPostVisibleIdsSetActions] =
+    useSet<number>([]);
 
   const [postEditModalState, closePostEditModal, updatePostEditModalState] =
     useModalState<PostEditModalState>({
@@ -90,10 +98,6 @@ export default function Posts() {
     username: "",
   });
 
-  const [favoritePostsIds, setFavoritePostsIds] = useLocalStorage<number[]>(
-    "favoritePostsIds",
-    []
-  );
   const {
     itemsNumberPerPage: postsNumberPerPage,
     handleChangeItemsNumberPerPage,
@@ -112,8 +116,6 @@ export default function Posts() {
     handleSearch,
     handleToggleFilterByFavorites,
   } = useFilters();
-
-  const selectedPostIdsRef = useRef(new Set<number>([]));
 
   const { data: postsApi, isLoading: postsLoading } = useFetch<PostModel[]>(
     `posts?_limit=${postsNumberPerPage}`
@@ -197,9 +199,6 @@ export default function Posts() {
       title,
       username,
       comments: [],
-      isFavorite: false,
-      isCommentsVisible: false,
-      isSelected: false,
     };
 
     setPosts((prev) => [newPost, ...prev]);
@@ -207,54 +206,20 @@ export default function Posts() {
   };
 
   const handleSelectPost = (postId: number) => {
-    setPosts((prev) => {
-      return prev.map((post) => {
-        const newIsSelected = !post.isSelected;
-
-        if (post.id === postId) {
-          if (newIsSelected) {
-            selectedPostIdsRef.current.add(post.id);
-          } else {
-            selectedPostIdsRef.current.delete(post.id);
-          }
-        }
-
-        return post.id === postId
-          ? {
-              ...post,
-              isSelected: !post.isSelected,
-            }
-          : post;
-      });
-    });
+    selectedPostsIdsSetActions.has(postId)
+      ? selectedPostsIdsSetActions.delete(postId)
+      : selectedPostsIdsSetActions.add(postId);
   };
 
   const handleAddToFavoriteSelected = () => {
-    setPosts((prev) => {
-      return prev.map((post) => {
-        const isSelected = selectedPostIdsRef.current.has(post.id);
-
-        if (isSelected) {
-          selectedPostIdsRef.current.delete(post.id);
-          return { ...post, isFavorite: true, isSelected: false };
-        }
-
-        return post;
-      });
+    selectedPostsIdsSetActions.each((selectedPostId) => {
+      favoritesPostIdsSetActions.add(selectedPostId);
     });
   };
 
   const handleDeleteSelected = () => {
     setPosts((prev) =>
-      prev.filter((post) => {
-        const isSelected = selectedPostIdsRef.current.has(post.id);
-
-        if (isSelected) {
-          selectedPostIdsRef.current.delete(post.id);
-          return false;
-        }
-        return true;
-      })
+      prev.filter((post) => !selectedPostsIdsSetActions.has(post.id))
     );
   };
 
@@ -263,19 +228,16 @@ export default function Posts() {
     postId: number
   ) => {
     e.stopPropagation();
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id === postId) {
-          setFavoritePostsIds((prev) =>
-            post.isFavorite
-              ? prev.filter((favPostId) => favPostId !== postId)
-              : [...prev, postId]
-          );
-          return { ...post, isFavorite: !post.isFavorite };
-        }
-        return post;
-      })
+
+    setFavoritePostsIds((prev) =>
+      favoritesPostIdsSetActions.has(postId)
+        ? prev.filter((favPostId) => favPostId !== postId)
+        : [...prev, postId]
     );
+
+    favoritesPostIdsSetActions.has(postId)
+      ? favoritesPostIdsSetActions.delete(postId)
+      : favoritesPostIdsSetActions.add(postId);
   };
 
   const handleConfirmEdit = (editedPost: PostEditState) => {
@@ -297,13 +259,10 @@ export default function Posts() {
     postId: number
   ) => {
     e.stopPropagation();
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? { ...post, isCommentsVisible: !post.isCommentsVisible }
-          : post
-      )
-    );
+
+    commentsPostVisibleIdsSet.has(postId)
+      ? commentsPostVisibleIdsSetActions.delete(postId)
+      : commentsPostVisibleIdsSetActions.add(postId);
   };
 
   const filteredPosts = useMemo(() => {
@@ -322,10 +281,18 @@ export default function Posts() {
       );
     }
     if (isFavorites) {
-      newPosts = newPosts.filter((post) => post.isFavorite);
+      newPosts = newPosts.filter((post) =>
+        favoritesPostIdsSetActions.has(post.id)
+      );
     }
     return newPosts;
-  }, [search, selectedUsersFilter, posts, isFavorites]);
+  }, [
+    search,
+    selectedUsersFilter,
+    posts,
+    isFavorites,
+    favoritesPostIdsSetActions,
+  ]);
 
   const sortedPosts = useMemo(() => {
     if (sortDirection === "" || sortBy === "") {
@@ -415,7 +382,7 @@ export default function Posts() {
         text={"Are you sure you want to delete?"}
         onClose={closePostDeleteConfirmationModal}
         onConfirm={() => {
-          selectedPostIdsRef.current.size > 0
+          selectedPostsIdsSet.size > 0
             ? handleDeleteSelected()
             : handleDeletePost(postDeleteConfirmationModalState.postId);
 
@@ -435,7 +402,7 @@ export default function Posts() {
       />
 
       <List sx={{ width: "100%", bgcolor: "background.paper" }}>
-        {selectedPostIdsRef.current.size > 0 && (
+        {selectedPostsIdsSet.size > 0 && (
           <Box>
             <IconButton
               aria-label="favorites"
@@ -468,7 +435,7 @@ export default function Posts() {
                 <ListItemIcon>
                   <Checkbox
                     edge="start"
-                    checked={post.isSelected}
+                    checked={selectedPostsIdsSetActions.has(post.id)}
                     tabIndex={-1}
                     disableRipple
                     inputProps={{ "aria-labelledby": labelId }}
@@ -493,7 +460,9 @@ export default function Posts() {
                           >
                             <CommentIcon
                               color={
-                                post.isCommentsVisible ? "primary" : "action"
+                                commentsPostVisibleIdsSet.has(post.id)
+                                  ? "primary"
+                                  : "action"
                               }
                             />
                           </IconButton>
@@ -507,7 +476,7 @@ export default function Posts() {
                             aria-label="favorites"
                             onClick={(e) => handleAddToFavorite(e, post.id)}
                           >
-                            {post.isFavorite ? (
+                            {favoritesPostIdsSetActions.has(post.id) ? (
                               <FavoriteIcon color="primary" />
                             ) : (
                               <FavoriteBorderIcon />
@@ -528,7 +497,7 @@ export default function Posts() {
                   secondary={
                     <Stack>
                       <Typography>{post.body}</Typography>
-                      {post.isCommentsVisible && (
+                      {commentsPostVisibleIdsSet.has(post.id) && (
                         <List>
                           {post.comments.map((comment) => (
                             <ListItem key={comment.id}>
