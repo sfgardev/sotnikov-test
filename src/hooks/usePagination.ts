@@ -2,7 +2,10 @@ import { LocalStorageKeys, useLocalStorage } from "./useLocalStorage";
 
 type LocalStoragePaginationKeys = keyof Pick<
   LocalStorageKeys,
-  "postsCountOnPage" | "photosCountOnPage" | "tasksCountOnPage"
+  | "postsCountOnPage"
+  | "photosCountOnPage"
+  | "tasksCountOnPage"
+  | "todosCountOnPage"
 >;
 
 export function usePagination(
