@@ -26,7 +26,7 @@ import useSorting from "../../hooks/useSorting";
 import Filters from "../Filters";
 import ListWithCheckbox from "../ListWithCheckbox";
 import SelectPagination from "../SelectPagination";
-import Sorting from "../Sorting";
+import Sorting, { SortBy, SortByItem } from "../Sorting";
 import AddNewPostModal from "../modals/AddNewPostModal";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import PostEditModal from "../modals/PostEditModal";
@@ -40,6 +40,13 @@ import {
   PostModel,
   UserModel,
 } from "./types";
+
+const postsSortByItems: SortByItem[] = [
+  { value: "id", label: "ID" },
+  { value: "title", label: "Title" },
+  { value: "username", label: "User name" },
+  { value: "isFavorite", label: "Favorites" },
+];
 
 export type PostWithAdditionalInfo = PostModel & {
   comments: CommentModel[];
@@ -104,7 +111,7 @@ export default function Posts() {
     sortDirection,
     handleChangeSortBy,
     handleChangeSortDirection,
-  } = useSorting();
+  } = useSorting<SortBy>();
   const {
     search,
     isFavorites,
@@ -348,6 +355,7 @@ export default function Posts() {
       <Sorting
         sortBy={sortBy}
         sortDirection={sortDirection}
+        sortByItems={postsSortByItems}
         onChangeSortBy={handleChangeSortBy}
         onChangeSortDirection={handleChangeSortDirection}
       />
