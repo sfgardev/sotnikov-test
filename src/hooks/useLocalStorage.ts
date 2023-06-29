@@ -5,6 +5,8 @@ export type LocalStorageKeys = {
   postsCountOnPage: number;
   photosCountOnPage: number;
   tasksCountOnPage: number;
+  todosCountOnPage: number;
+  completedTodosIds: number[]
   favoritePostsIds: number[];
   favoriteAlbumsIds: number[];
 };
