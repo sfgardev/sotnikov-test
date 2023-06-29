@@ -7,7 +7,7 @@ import Filters from "../Filters";
 import ListWithCheckbox from "../ListWithCheckbox";
 import { UserModel } from "../Posts/types";
 import SelectPagination from "../SelectPagination";
-import Sorting from "../Sorting";
+import Sorting, { SortBy, SortByItem } from "../Sorting";
 import {
   AddToFavoritesConfirmationModalState,
   AlbumDeleteConfirmationModalState,
@@ -16,13 +16,26 @@ import {
 import { useSet } from "../../hooks/useSet";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useModalState } from "../../hooks/useModalState";
-import { Box, Typography, Stack, IconButton } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Stack,
+  IconButton,
+  CircularProgress,
+} from "@mui/material";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import EditIcon from "@mui/icons-material/Edit";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { Link, generatePath } from "react-router-dom";
+
+const photosSortByItems: SortByItem[] = [
+  { value: "id", label: "ID" },
+  { value: "title", label: "Title" },
+  { value: "username", label: "User name" },
+  { value: "isFavorite", label: "Favorites" },
+];
 
 type AlbumWithUserName = AlbumModel & {
   username: string;
@@ -40,8 +53,10 @@ export default function Photos() {
 
   const [, favoritesAlbumsIdsSetActions] = useSet<number>(favoriteAlbumsIds);
 
-  const { data: albumsApi } = useFetch<AlbumModel[]>("albums");
-  const { data: usersApi } = useFetch<UserModel[]>("users");
+  const { data: albumsApi, isLoading: albumsLoading } =
+    useFetch<AlbumModel[]>("albums");
+  const { data: usersApi, isLoading: usersLoading } =
+    useFetch<UserModel[]>("users");
 
   const [
     albumDeleteConfirmationModalState,
@@ -79,7 +94,7 @@ export default function Photos() {
     sortDirection,
     handleChangeSortBy,
     handleChangeSortDirection,
-  } = useSorting();
+  } = useSorting<SortBy>();
 
   useEffect(() => {
     if (!albumsApi || !usersApi) return;
@@ -215,6 +230,18 @@ export default function Photos() {
 
   const userNames = (usersApi ?? []).map((user) => user.name);
 
+  if (!albumsApi || !usersApi || albumsLoading || usersLoading) {
+    return (
+      <CircularProgress
+        sx={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          translate: "-50% -50%",
+        }}
+      />
+    );
+  }
   return (
     <>
       <SelectPagination
@@ -247,6 +274,7 @@ export default function Photos() {
       <Sorting
         sortBy={sortBy}
         sortDirection={sortDirection}
+        sortByItems={photosSortByItems}
         onChangeSortBy={handleChangeSortBy}
         onChangeSortDirection={handleChangeSortDirection}
       />
