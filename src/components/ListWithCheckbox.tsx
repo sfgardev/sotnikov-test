@@ -1,21 +1,22 @@
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import {
-    Box,
-    Checkbox,
-    IconButton,
-    List,
-    ListItem,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
+  Box,
+  Checkbox,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 
 type ListWithCheckboxProps<T extends { id: number }> = {
   selectedItemsSet: ReadonlySet<number>;
   items: Array<T>;
+  showBulkFavoriteAction?: boolean;
   renderPrimary: (item: T) => React.ReactNode;
-  renderSecondary: (item: T) => React.ReactNode;
+  renderSecondary?: (item: T) => React.ReactNode;
   onSelectItem: (itemId: number) => void;
   onOpenAddToFavoriteConfirmationModal: () => void;
   onOpenDeleteConfirmationItemModal: () => void;
@@ -24,8 +25,9 @@ type ListWithCheckboxProps<T extends { id: number }> = {
 export default function ListWithCheckbox<T extends { id: number }>({
   selectedItemsSet,
   items,
+  showBulkFavoriteAction = true,
   renderPrimary,
-  renderSecondary,
+  renderSecondary = () => null,
   onSelectItem,
   onOpenAddToFavoriteConfirmationModal,
   onOpenDeleteConfirmationItemModal,
@@ -34,12 +36,14 @@ export default function ListWithCheckbox<T extends { id: number }>({
     <List sx={{ width: "100%", bgcolor: "background.paper" }}>
       {selectedItemsSet.size > 0 && (
         <Box>
-          <IconButton
-            aria-label="favorites"
-            onClick={onOpenAddToFavoriteConfirmationModal}
-          >
-            <FavoriteBorderIcon />
-          </IconButton>
+          {showBulkFavoriteAction && (
+            <IconButton
+              aria-label="favorites"
+              onClick={onOpenAddToFavoriteConfirmationModal}
+            >
+              <FavoriteBorderIcon />
+            </IconButton>
+          )}
           <IconButton
             aria-label="delete"
             onClick={onOpenDeleteConfirmationItemModal}
