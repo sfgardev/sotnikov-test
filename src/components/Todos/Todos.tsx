@@ -11,12 +11,16 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useFetch } from "../../hooks/useFetch";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useModalState } from "../../hooks/useModalState";
 import { usePagination } from "../../hooks/usePagination";
 import { useSet } from "../../hooks/useSet";
 import useSorting from "../../hooks/useSorting";
 import ListWithCheckbox from "../ListWithCheckbox";
 import SelectPagination from "../SelectPagination";
 import Sorting, { SortByItem } from "../Sorting";
+import AddNewTodoModal from "../modals/AddNewTodoModal";
+import ConfirmationModal from "../modals/ConfirmationModal";
+import TodoEditModal from "../modals/TodoEditModal";
 import TodosFilter from "./TodosFilter";
 import {
   AddNewTodoModalState,
@@ -24,10 +28,6 @@ import {
   TodoEditModalState,
   TodoModel,
 } from "./types";
-import ConfirmationModal from "../modals/ConfirmationModal";
-import { useModalState } from "../../hooks/useModalState";
-import TodoEditModal from "../modals/TodoEditModal";
-import AddNewTodoModal from "../modals/AddNewTodoModal";
 
 const todosSortByItems: SortByItem[] = [
   { value: "title", label: "Title" },
@@ -49,8 +49,7 @@ export default function Todos() {
     "completedTodosIds",
     []
   );
-  const [completedTodosIdsSet, setCompletedTodosIdsSetActions] =
-    useSet<number>(completedTodosIds);
+  const [completedTodosIdsSet] = useSet<number>(completedTodosIds);
 
   const [
     deleteTodoConfirmationModalState,

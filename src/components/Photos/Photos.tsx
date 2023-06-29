@@ -1,34 +1,33 @@
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import {
+    Box,
+    CircularProgress,
+    IconButton,
+    Stack,
+    Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import { Link, generatePath } from "react-router-dom";
 import { useFetch } from "../../hooks/useFetch";
 import useFilters from "../../hooks/useFilters";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useModalState } from "../../hooks/useModalState";
 import { usePagination } from "../../hooks/usePagination";
+import { useSet } from "../../hooks/useSet";
 import useSorting from "../../hooks/useSorting";
 import Filters from "../Filters";
 import ListWithCheckbox from "../ListWithCheckbox";
 import { UserModel } from "../Posts/types";
 import SelectPagination from "../SelectPagination";
 import Sorting, { SortBy, SortByItem } from "../Sorting";
-import {
-  AddToFavoritesConfirmationModalState,
-  AlbumDeleteConfirmationModalState,
-  AlbumModel,
-} from "./types";
-import { useSet } from "../../hooks/useSet";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
-import { useModalState } from "../../hooks/useModalState";
-import {
-  Box,
-  Typography,
-  Stack,
-  IconButton,
-  CircularProgress,
-} from "@mui/material";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import EditIcon from "@mui/icons-material/Edit";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ConfirmationModal from "../modals/ConfirmationModal";
-import { Link, generatePath } from "react-router-dom";
+import {
+    AddToFavoritesConfirmationModalState,
+    AlbumDeleteConfirmationModalState,
+    AlbumModel,
+} from "./types";
 
 const photosSortByItems: SortByItem[] = [
   { value: "id", label: "ID" },
