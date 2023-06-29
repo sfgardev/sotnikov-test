@@ -7,19 +7,26 @@ import Select from "@mui/material/Select";
 export type SortDirection = "asc" | "desc" | "";
 export type SortBy = "id" | "title" | "username" | "";
 
-type SortingProps = {
-  sortDirection: SortDirection;
-  sortBy: SortBy;
-  onChangeSortDirection: (value: SortDirection) => void;
-  onChangeSortBy: (value: SortBy) => void;
+export type SortByItem = {
+  label: string;
+  value: string;
 };
 
-export default function Sorting({
+type SortingProps<TSortBy> = {
+  sortDirection: SortDirection;
+  sortBy: TSortBy;
+  sortByItems: SortByItem[];
+  onChangeSortDirection: (value: SortDirection) => void;
+  onChangeSortBy: (value: TSortBy) => void;
+};
+
+export default function Sorting<TSortBy>({
   sortBy,
   sortDirection,
+  sortByItems,
   onChangeSortBy,
   onChangeSortDirection,
-}: SortingProps) {
+}: SortingProps<TSortBy>) {
   return (
     <Stack sx={{ mb: 2 }} direction="row" gap=".75rem">
       <FormControl size="small" sx={{ width: "110px" }}>
@@ -44,12 +51,13 @@ export default function Sorting({
           id="demo-simple-select"
           value={sortBy}
           label="Sort by"
-          onChange={(e) => onChangeSortBy(e.target.value as SortBy)}
+          onChange={(e) => onChangeSortBy(e.target.value as TSortBy)}
         >
-          <MenuItem value="id">ID</MenuItem>
-          <MenuItem value="title">Title</MenuItem>
-          <MenuItem value="username">User name</MenuItem>
-          <MenuItem value="isFavorite">Favorites</MenuItem>
+          {sortByItems.map((item) => (
+            <MenuItem key={item.value} value={item.value}>
+              {item.label}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
     </Stack>
